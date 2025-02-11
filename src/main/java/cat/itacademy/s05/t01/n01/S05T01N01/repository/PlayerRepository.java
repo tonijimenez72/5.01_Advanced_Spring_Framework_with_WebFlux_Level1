@@ -1,11 +1,11 @@
 package cat.itacademy.s05.t01.n01.S05T01N01.repository;
 
-import cat.itacademy.s05.t01.n01.S05T01N01.model.Player;
-import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
+import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import org.springframework.stereotype.Repository;
-import reactor.core.publisher.Flux;
+import  cat.itacademy.s05.t01.n01.S05T01N01.model.Player;
+import reactor.core.publisher.Mono;
 
 @Repository
-public interface PlayerRepository extends ReactiveMongoRepository<Player, String> {
-    Flux<Player> findByName(String name);
+public interface PlayerRepository extends ReactiveCrudRepository<Player, Long> {
+    Mono<Player> findByName(String name);
 }

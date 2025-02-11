@@ -8,29 +8,18 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
-@RequestMapping("/players")
 public class PlayerController {
 
     @Autowired
     private PlayerService playerService;
 
-    @GetMapping
-    public Flux<Player> getAllPlayers() {
-        return playerService.getAllPlayers();
+    @PutMapping("/player/{playerId}")
+    public Mono<Player> updatePlayerName(@PathVariable Long playerId, @RequestBody Player player) {
+        return playerService.updatePlayerName(playerId, player.getName());
     }
 
-    @GetMapping("/{id}")
-    public Mono<Player> getPlayerById(@PathVariable String id) {
-        return playerService.getPlayerById(id);
-    }
-
-    @PostMapping
-    public Mono<Player> savePlayer(@RequestBody Player player) {
-        return playerService.savePlayer(player);
-    }
-
-    @DeleteMapping("/{id}")
-    public Mono<Void> deletePlayerById(@PathVariable String id) {
-        return playerService.deletePlayerById(id);
+    @GetMapping("/ranking")
+    public Flux<Player> getRanking() {
+        return playerService.getRanking();
     }
 }

@@ -24,6 +24,7 @@ This application must be properly tested and documented using `README.md`, Swagg
 
 - **API Documentation with Swagger**  
   Use Swagger to automatically generate API documentation.  
+  http://localhost:8080/swagger-ui.html
 
 ### Steps to Follow:  
 
