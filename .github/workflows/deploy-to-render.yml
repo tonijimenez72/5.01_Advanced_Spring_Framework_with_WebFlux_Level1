@@ -9,7 +9,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
       - name: Install Render CLI
         run: npm install -g render-cli
@@ -18,4 +19,4 @@ jobs:
         env:
           RENDER_EMAIL: ${{ secrets.RENDER_EMAIL }}
           RENDER_PASSWORD: ${{ secrets.RENDER_PASSWORD }}
-          run: render deploy --engine mustache --email $RENDER_EMAIL --password $RENDER_PASSWORD
+        run: render deploy --engine mustache --email $RENDER_EMAIL --password $RENDER_PASSWORD
