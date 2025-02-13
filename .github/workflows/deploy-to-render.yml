@@ -1,0 +1,21 @@
+name: Deploy to Render
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Render CLI
+        run: npm install -g render-cli
+
+      - name: Deploy in Render
+        env:
+          RENDER_EMAIL: ${{ secrets.RENDER_EMAIL }}
+          RENDER_PASSWORD: ${{ secrets.RENDER_PASSWORD }}
+        run: render deploy --email $RENDER_EMAIL --password $RENDER_PASSWORD
