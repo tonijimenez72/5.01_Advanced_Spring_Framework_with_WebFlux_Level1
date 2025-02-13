@@ -2,51 +2,48 @@ package cat.itacademy.s05.t01.n01.S05T01N01.controller;
 
 import cat.itacademy.s05.t01.n01.S05T01N01.dto.NewGameRequest;
 import cat.itacademy.s05.t01.n01.S05T01N01.dto.PlayMoveRequest;
-import cat.itacademy.s05.t01.n01.S05T01N01.enums.GameStatus;
-import cat.itacademy.s05.t01.n01.S05T01N01.model.GameState;
+import cat.itacademy.s05.t01.n01.S05T01N01.enums.PlayerMove;
+import cat.itacademy.s05.t01.n01.S05T01N01.model.Game;
 import cat.itacademy.s05.t01.n01.S05T01N01.service.GameService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.ArrayList;
-
 @WebFluxTest(controllers = GameController.class)
+@Import(GameControllerTest.Config.class)
 public class GameControllerTest {
 
     @Autowired
     private WebTestClient webTestClient;
 
-    @MockBean
+    @Autowired
     private GameService gameService;
 
-    private GameState sampleGameState;
-
-    @BeforeEach
-    public void setup() {
-        // Configuración básica de un GameState de ejemplo.
-        sampleGameState = new GameState();
-        sampleGameState.setGameId("sample-game-id");
-        sampleGameState.setStatus(GameStatus.IN_PROGRESS);
-        sampleGameState.setRound(1);
-        sampleGameState.setActions(new ArrayList<>());
-        // Asumimos que sampleGameState.player y sampleGameState.croupier se configuran internamente.
-        // En un caso real, se crearían instancias de PlayerState y CroupierState con datos de prueba.
+    @TestConfiguration
+    static class Config {
+        @Bean
+        public GameService gameService() {
+            return Mockito.mock(GameService.class);
+        }
     }
 
     @Test
     public void testCreateGame() {
         NewGameRequest request = new NewGameRequest();
-        request.setPlayerName("Test Player");
+        request.setPlayerName("John Doe");
 
-        Mockito.when(gameService.startGame("Test Player")).thenReturn(Mono.just(sampleGameState));
+        Game game = new Game();
+        game.setId("123");
+        game.setPlayerName("John Doe");
+
+        Mockito.when(gameService.createGame("John Doe")).thenReturn(Mono.just(game));
 
         webTestClient.post()
                 .uri("/game/new")
@@ -54,74 +51,53 @@ public class GameControllerTest {
                 .bodyValue(request)
                 .exchange()
                 .expectStatus().isCreated()
-                .expectBody(GameState.class)
-                .isEqualTo(sampleGameState);
+                .expectBody(Game.class)
+                .isEqualTo(game);
     }
 
     @Test
     public void testGetGame() {
-        Mockito.when(gameService.getGame("sample-game-id")).thenReturn(Mono.just(sampleGameState));
+        Game game = new Game();
+        game.setId("1234");
+        game.setPlayerName("Joana Petita");
+
+        Mockito.when(gameService.getGame("1234")).thenReturn(Mono.just(game));
 
         webTestClient.get()
-                .uri("/game/{id}", "sample-game-id")
+                .uri("/game/1234")
                 .exchange()
                 .expectStatus().isOk()
-                .expectBody(GameState.class)
-                .isEqualTo(sampleGameState);
+                .expectBody(Game.class)
+                .isEqualTo(game);
     }
 
     @Test
-    public void testGetAllGames() {
-        Mockito.when(gameService.getAllGames()).thenReturn(Flux.just(sampleGameState));
-
-        webTestClient.get()
-                .uri("/game")
-                .exchange()
-                .expectStatus().isOk()
-                .expectBodyList(GameState.class)
-                .contains(sampleGameState);
-    }
-
-    @Test
-    public void testPlayHit() {
+    public void testPlayMove() {
         PlayMoveRequest request = new PlayMoveRequest();
-        request.setMove("HIT");
+        request.setMove(PlayerMove.HIT);
 
-        Mockito.when(gameService.hit("sample-game-id")).thenReturn(Mono.just(sampleGameState));
+        Game game = new Game();
+        game.setId("1234");
+        game.setPlayerName("Joana Petita");
+
+        Mockito.when(gameService.playMove("1234", PlayerMove.HIT)).thenReturn(Mono.just(game));
 
         webTestClient.post()
-                .uri("/game/{id}/play", "sample-game-id")
+                .uri("/game/1234/play")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .exchange()
                 .expectStatus().isOk()
-                .expectBody(GameState.class)
-                .isEqualTo(sampleGameState);
-    }
-
-    @Test
-    public void testPlayStand() {
-        PlayMoveRequest request = new PlayMoveRequest();
-        request.setMove("STAND");
-
-        Mockito.when(gameService.stand("sample-game-id")).thenReturn(Mono.just(sampleGameState));
-
-        webTestClient.post()
-                .uri("/game/{id}/play", "sample-game-id")
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody(GameState.class)
-                .isEqualTo(sampleGameState);
+                .expectBody(Game.class)
+                .isEqualTo(game);
     }
 
     @Test
     public void testDeleteGame() {
-        Mockito.when(gameService.deleteGame("sample-game-id")).thenReturn(Mono.empty());
+        Mockito.when(gameService.deleteGame("1234")).thenReturn(Mono.empty());
 
         webTestClient.delete()
-                .uri("/game/{id}/delete", "sample-game-id")
+                .uri("/game/1234/delete")
                 .exchange()
                 .expectStatus().isNoContent();
     }

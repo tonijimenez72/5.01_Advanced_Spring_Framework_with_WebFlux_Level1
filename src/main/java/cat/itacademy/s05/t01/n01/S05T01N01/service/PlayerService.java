@@ -5,9 +5,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public interface PlayerService {
-    Mono<Player> createPlayer(Player player);
     Mono<Player> updatePlayerName(Long playerId, String newName);
-    Mono<Player> getPlayerById(Long playerId);
     Flux<Player> getRanking();
-    Mono<Void> deletePlayer(Long playerId);
+    Mono<Player> findByName(String name);
+    Mono<Player> save(Player player);
 }

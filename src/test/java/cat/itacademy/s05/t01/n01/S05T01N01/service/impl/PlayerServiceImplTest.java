@@ -1,12 +1,15 @@
 package cat.itacademy.s05.t01.n01.S05T01N01.service.impl;
 
+import cat.itacademy.s05.t01.n01.S05T01N01.exception.custom.PlayerNotFoundException;
+import cat.itacademy.s05.t01.n01.S05T01N01.exception.custom.RankingIsEmptyException;
 import cat.itacademy.s05.t01.n01.S05T01N01.model.Player;
 import cat.itacademy.s05.t01.n01.S05T01N01.repository.PlayerRepository;
-import org.junit.jupiter.api.BeforeEach;
+import cat.itacademy.s05.t01.n01.S05T01N01.service.PlayerService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -14,6 +17,7 @@ import reactor.test.StepVerifier;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 public class PlayerServiceImplTest {
 
     @Mock
@@ -22,86 +26,110 @@ public class PlayerServiceImplTest {
     @InjectMocks
     private PlayerServiceImpl playerService;
 
-    private Player samplePlayer;
-
-    @BeforeEach
-    public void setup() {
-        MockitoAnnotations.openMocks(this);
-        samplePlayer = new Player();
-        samplePlayer.setId(1L);
-        samplePlayer.setName("Test Player");
-        samplePlayer.setPlayerWinsCounter(0);
-    }
-
     @Test
-    public void testCreatePlayer() {
-        when(playerRepository.save(any(Player.class))).thenReturn(Mono.just(samplePlayer));
+    public void testUpdatePlayerName_Success() {
+        Player existingPlayer = new Player(1L, "Joan Vell", 0);
+        when(playerRepository.findById(1L)).thenReturn(Mono.just(existingPlayer));
+        when(playerRepository.save(existingPlayer)).thenReturn(Mono.just(new Player(1L, "Joan Nou", 0)));
 
-        Mono<Player> result = playerService.createPlayer(samplePlayer);
+        Mono<Player> result = playerService.updatePlayerName(1L, "Joan Nou");
 
         StepVerifier.create(result)
-                .expectNextMatches(player -> player.getId().equals(1L)
-                        && "Test Player".equals(player.getName()))
-                .verifyComplete();
-
-        verify(playerRepository, times(1)).save(samplePlayer);
-    }
-
-    @Test
-    public void testUpdatePlayerName() {
-        Player updatedPlayer = new Player();
-        updatedPlayer.setId(1L);
-        updatedPlayer.setName("Updated Player");
-        updatedPlayer.setPlayerWinsCounter(0);
-
-        when(playerRepository.findById(1L)).thenReturn(Mono.just(samplePlayer));
-        when(playerRepository.save(any(Player.class))).thenReturn(Mono.just(updatedPlayer));
-
-        Mono<Player> result = playerService.updatePlayerName(1L, "Updated Player");
-
-        StepVerifier.create(result)
-                .expectNextMatches(player -> "Updated Player".equals(player.getName()))
+                .expectNextMatches(player -> "Joan Nou".equals(player.getName()))
                 .verifyComplete();
 
         verify(playerRepository, times(1)).findById(1L);
-        verify(playerRepository, times(1)).save(any(Player.class));
+        verify(playerRepository, times(1)).save(existingPlayer);
     }
 
     @Test
-    public void testGetPlayerById() {
-        when(playerRepository.findById(1L)).thenReturn(Mono.just(samplePlayer));
+    public void testUpdatePlayerName_NotFound() {
+        when(playerRepository.findById(2L)).thenReturn(Mono.empty());
 
-        Mono<Player> result = playerService.getPlayerById(1L);
+        Mono<Player> result = playerService.updatePlayerName(2L, "Joan Nou");
 
         StepVerifier.create(result)
-                .expectNext(samplePlayer)
-                .verifyComplete();
+                .expectErrorMatches(throwable ->
+                        throwable instanceof PlayerNotFoundException &&
+                                throwable.getMessage().equals("Player not found with id: 2"))
+                .verify();
 
-        verify(playerRepository, times(1)).findById(1L);
+        verify(playerRepository, times(1)).findById(2L);
+        verify(playerRepository, never()).save(any());
     }
 
     @Test
-    public void testGetRanking() {
-        when(playerRepository.findAll()).thenReturn(Flux.just(samplePlayer));
+    public void testGetRanking_Success() {
+        Player player1 = new Player(1L, "Joan Nou", 2);
+        Player player2 = new Player(2L, "Joan Vell", 3);
+        when(playerRepository.findAll()).thenReturn(Flux.just(player1, player2));
 
         Flux<Player> result = playerService.getRanking();
 
         StepVerifier.create(result)
-                .expectNext(samplePlayer)
+                .expectNext(player1)
+                .expectNext(player2)
                 .verifyComplete();
 
         verify(playerRepository, times(1)).findAll();
     }
 
     @Test
-    public void testDeletePlayer() {
-        when(playerRepository.deleteById(1L)).thenReturn(Mono.empty());
+    public void testGetRanking_Empty() {
+        when(playerRepository.findAll()).thenReturn(Flux.empty());
 
-        Mono<Void> result = playerService.deletePlayer(1L);
+        Flux<Player> result = playerService.getRanking();
 
         StepVerifier.create(result)
+                .expectErrorMatches(throwable ->
+                        throwable instanceof RankingIsEmptyException &&
+                                throwable.getMessage().equals("Ranking is empty"))
+                .verify();
+
+        verify(playerRepository, times(1)).findAll();
+    }
+
+    @Test
+    public void testFindByName_Found() {
+        Player player = new Player(1L, "Joan Nou", 0);
+        when(playerRepository.findByName("Joan Nou")).thenReturn(Mono.just(player));
+
+        Mono<Player> result = playerService.findByName("Joan Nou");
+
+        StepVerifier.create(result)
+                .expectNext(player)
                 .verifyComplete();
 
-        verify(playerRepository, times(1)).deleteById(1L);
+        verify(playerRepository, times(1)).findByName("Joan Nou");
+    }
+
+    @Test
+    public void testFindByName_NotFound_CreatesNew() {
+        when(playerRepository.findByName("Joan Nou")).thenReturn(Mono.empty());
+        Player newPlayer = new Player(3L, "Joan Nou", 0);
+        when(playerRepository.save(any(Player.class))).thenReturn(Mono.just(newPlayer));
+
+        Mono<Player> result = playerService.findByName("Joan Nou");
+
+        StepVerifier.create(result)
+                .expectNextMatches(player -> "Joan Nou".equals(player.getName()) && player.getPlayerWinsCounter() == 0)
+                .verifyComplete();
+
+        verify(playerRepository, times(1)).findByName("Joan Nou");
+        verify(playerRepository, times(1)).save(any(Player.class));
+    }
+
+    @Test
+    public void testSave() {
+        Player player = new Player(4L, "Joan Nou", 5);
+        when(playerRepository.save(player)).thenReturn(Mono.just(player));
+
+        Mono<Player> result = playerService.save(player);
+
+        StepVerifier.create(result)
+                .expectNext(player)
+                .verifyComplete();
+
+        verify(playerRepository, times(1)).save(player);
     }
 }

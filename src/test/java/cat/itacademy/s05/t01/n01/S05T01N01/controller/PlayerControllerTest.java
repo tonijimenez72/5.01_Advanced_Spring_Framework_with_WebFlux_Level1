@@ -1,63 +1,83 @@
 package cat.itacademy.s05.t01.n01.S05T01N01.controller;
 
+import cat.itacademy.s05.t01.n01.S05T01N01.dto.NewPlayerNameRequest;
 import cat.itacademy.s05.t01.n01.S05T01N01.model.Player;
 import cat.itacademy.s05.t01.n01.S05T01N01.service.PlayerService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @WebFluxTest(controllers = PlayerController.class)
+@Import(PlayerControllerTest.Config.class)
 public class PlayerControllerTest {
 
     @Autowired
     private WebTestClient webTestClient;
 
-    @MockBean
+    @Autowired
     private PlayerService playerService;
 
-    private Player samplePlayer;
-
-    @BeforeEach
-    public void setup() {
-        samplePlayer = new Player();
-        samplePlayer.setId(1L);
-        samplePlayer.setName("Test Player");
-        samplePlayer.setPlayerWinsCounter(5);
+    @TestConfiguration
+    static class Config {
+        @Bean
+        public PlayerService playerService() {
+            return Mockito.mock(PlayerService.class);
+        }
     }
 
     @Test
     public void testUpdatePlayerName() {
-        Player updateRequest = new Player();
-        updateRequest.setName("Updated Name");
+        Long playerId = 1L;
+        NewPlayerNameRequest request = new NewPlayerNameRequest();
+        request.setPlayerName("Jane Doe");
 
-        Mockito.when(playerService.updatePlayerName(1L, "Updated Name")).thenReturn(Mono.just(samplePlayer));
+        Player player = new Player();
+        player.setId(playerId);
+        player.setName("Jane Doe");
+        player.setPlayerWinsCounter(100);
+
+        Mockito.when(playerService.updatePlayerName(playerId, "Jane Doe"))
+                .thenReturn(Mono.just(player));
 
         webTestClient.put()
-                .uri("/player/{playerId}", 1)
+                .uri("/player/{playerId}", playerId)
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(updateRequest)
+                .bodyValue(request)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(Player.class)
-                .isEqualTo(samplePlayer);
+                .isEqualTo(player);
     }
 
     @Test
     public void testGetRanking() {
-        Mockito.when(playerService.getRanking()).thenReturn(Flux.just(samplePlayer));
+        Player player1 = new Player();
+        player1.setId(1L);
+        player1.setName("Joana Petita");
+        player1.setPlayerWinsCounter(2);
+
+        Player player2 = new Player();
+        player2.setId(2L);
+        player2.setName("Joan Petit");
+        player2.setPlayerWinsCounter(1);
+
+        Mockito.when(playerService.getRanking())
+                .thenReturn(Flux.just(player1, player2));
 
         webTestClient.get()
                 .uri("/ranking")
                 .exchange()
                 .expectStatus().isOk()
                 .expectBodyList(Player.class)
-                .contains(samplePlayer);
+                .hasSize(2)
+                .contains(player1, player2);
     }
 }
