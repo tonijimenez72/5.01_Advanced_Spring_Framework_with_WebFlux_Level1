@@ -18,4 +18,4 @@ jobs:
         env:
           RENDER_EMAIL: ${{ secrets.RENDER_EMAIL }}
           RENDER_PASSWORD: ${{ secrets.RENDER_PASSWORD }}
-        run: render deploy --email $RENDER_EMAIL --password $RENDER_PASSWORD
+          run: render deploy --engine mustache --email $RENDER_EMAIL --password $RENDER_PASSWORD
